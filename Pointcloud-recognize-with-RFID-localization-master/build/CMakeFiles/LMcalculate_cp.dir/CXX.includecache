@@ -1,0 +1,44 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/tzq/Pointcloud-recognize-with-RFID-localization-master/include/preprocessing_cp.h
+iostream
+-
+eigen3/Eigen/Dense
+-
+eigen3/Eigen/Sparse
+-
+cmath
+-
+iomanip
+-
+stdio.h
+-
+stdlib.h
+-
+fstream
+-
+string
+-
+vector
+-
+time.h
+-
+numeric
+-
+
+/home/tzq/Pointcloud-recognize-with-RFID-localization-master/src/main_cp.cpp
+../include/preprocessing_cp.h
+/home/tzq/Pointcloud-recognize-with-RFID-localization-master/include/preprocessing_cp.h
+time.h
+-
+
+/home/tzq/Pointcloud-recognize-with-RFID-localization-master/src/preprocessing_cp.cpp
+../include/preprocessing_cp.h
+/home/tzq/Pointcloud-recognize-with-RFID-localization-master/include/preprocessing_cp.h
+
