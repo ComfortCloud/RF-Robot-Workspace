@@ -1,71 +1,76 @@
-#include "preprocessing.h"
-
+#include "dataPreprocess.h"
+#include "paramDefine.h"
+#include "LMSolution.h"
+#include <time.h>
 using namespace Eigen;
 using namespace std;
 
 int main()
 {
-	MyReaderData data1;
-	data1.DownloadData("../experiment/12/first", 1);
-	data1.DownloadData("../experiment/12/second", 2);
-	data1.DownloadData("../experiment/12/third", 3);
-	OdomData odom;
-	fstream fin;
-	// fin.open("/home/tzq/Pointcloud-recognize-with-RFID-localization/experiment/17/1673515667.txt", ios::in);
-	fin.open("../experiment/12/odom.txt", ios::in);
-	while (1)
-	{
-		double x0;
-		double y0;
-		double a;
-		double b;
-		double yaw0;
-		double timestamp_ros0;
-		fin >> x0;
-		if (fin.eof())
-			break;
-		odom.x.push_back(x0);
-		fin >> y0;
-		odom.y.push_back(y0);
-		fin >> a;
-		fin >> b;
-		fin >> yaw0;
-		odom.yaw.push_back(yaw0);
-		fin >> timestamp_ros0;
-		odom.timestamp.push_back(timestamp_ros0);
-		// cout << x0 << y0 << yaw0 << timestamp_ros0 << endl;
-	}
-	fin.close();
+	clock_t start, finish;
+	//clock_t为CPU时钟计时单元数
+	start = clock();
 
-	cout << "Finish reading data!" << endl;
+	MyReaderData dataset;
+	dataset.DownloadDataRFID("../experiment/16/first", 1);
+	dataset.DownloadDataRFID("../experiment/16/second", 2);
+	dataset.DownloadDataRFID("../experiment/16/third", 3);
+	cout << "Finish reading RFID data!" << endl;
 
-	ofstream EPCxyz("EPCxyz.txt");
+	dataset.DownloadDataOdom("./experiment/16/odom.txt");
+	cout << "Finish reading Odom data!" << endl;
+
+	// 数据预处理：过滤、插值、坐标转换
+	dataset.preprocess();
+
+	ofstream EPCxyz("EPCxyz_11_new.txt");
 	int count = 0;
-	for (int i = 0; i < data1.EPCVec.size(); i++)
+	for (int i = 0; i < dataset.EPCVec.size(); i++)
 	{
-		if (data1.EPCVec[i].epc != "E200-001A-0411-2000-1080-0001" && data1.EPCVec[i].epc != "E200-001A-0411-0236-1040-D50E"
-&& data1.EPCVec[i].epc != "E200-001A-0411-0226-1040-CDC1"
-
-)
+		if (1)
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0146-1040-79B1"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0160-1040-8274"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0172-1040-93F2"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0170-1040-93F1"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0197-1040-B05A"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0199-1040-B05B"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-2000-1080-0037"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0185-1040-9F6C"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-2171-1040-96CD"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-2000-1080-0041"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0186-1040-A549"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0182-1040-9CAF"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0146-1040-79B1"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0148-1040-79B2"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0145-1040-73C4"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0119-1040-8542"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0183-1040-9F6B"
+			// || 	 dataset.EPCVec[i].epc=="E200-001A-0411-0119-1040-8543")
 		{
 			LM EPC_localization;
 			int index;
-			if (data1.EPCVec[i].reader[0].ant[0].phase.size() + data1.EPCVec[i].reader[0].ant[1].phase.size() + data1.EPCVec[i].reader[0].ant[2].phase.size() < data1.EPCVec[i].reader[1].ant[0].phase.size() + data1.EPCVec[i].reader[1].ant[1].phase.size() + data1.EPCVec[i].reader[1].ant[2].phase.size())
+			if (dataset.EPCVec[i].reader[0].ant[0].phase.size() + dataset.EPCVec[i].reader[0].ant[1].phase.size()
+				+ dataset.EPCVec[i].reader[0].ant[2].phase.size() < dataset.EPCVec[i].reader[1].ant[0].phase.size()
+				+ dataset.EPCVec[i].reader[1].ant[1].phase.size() + dataset.EPCVec[i].reader[1].ant[2].phase.size())
 				index = 1;
 			else
 				index = 0;
-			cout << data1.EPCVec[i].epc << endl;
+			cout << "------------------------------------------------------" << endl;
+			cout << dataset.EPCVec[i].epc << endl;
 			EPC_localization.flag = 1;
-			EPC_localization.MakeHessian(data1.EPCVec[i].reader[index], odom);
+			EPC_localization.MakeHessian(&dataset, i);
 			if (EPC_localization.flag)
 			{
 				cout << "Succeed result!" << endl;
-				EPCxyz << ++count << " " << data1.EPCVec[i].epc << " " << std::fixed << EPC_localization.a_new << " " << std::fixed << EPC_localization.b_new << " " << std::fixed << EPC_localization.c_new << endl;
+				EPCxyz << ++count << " " << dataset.EPCVec[i].epc << " " << std::fixed << EPC_localization.a_new + 0.2 << " " << std::fixed << EPC_localization.b_new << " " << std::fixed << EPC_localization.c_new << endl;
 			}
 			else
 				cout << "no result" << endl;
 		}
 	}
+	finish = clock();
+	//clock()函数返回此时CPU时钟计时单元数
+	cout << endl << "the time cost is:" << double(finish - start) / CLOCKS_PER_SEC << endl;
 
 	return 0;
 }
