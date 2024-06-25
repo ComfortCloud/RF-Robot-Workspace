@@ -216,7 +216,7 @@ if __name__ == '__main__':
     # Define mode control parameters
     noise = None
     multipath = None
-    root_path = 'C:/Users/yangy/Desktop/GeneratedData'
+    root_path = '~/GeneratedData'
     
     '''
     Start data generation:
