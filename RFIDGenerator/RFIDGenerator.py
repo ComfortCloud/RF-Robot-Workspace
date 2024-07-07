@@ -148,12 +148,59 @@ def generateTrajectory(start_point, end_point, distance_interval):
     points = np.array([start_point + i * actual_spacing for i in range(num_points)])  
     return points
 
+ 
+'''
+Decide whether the LOS is blocked?
+'''  
+def point_inside_box(p, cx, cy, cz, half_dims):  
+    """Whether the points of LOS is inside the blocks?"""  
+    return np.all(np.abs(p - [cx, cy, cz]) <= half_dims)  
+  
+def line_intersect_plane(p1, p2, plane_normal, plane_point):  
+    """Whether the LOS has intersect with planes of the blocks?"""  
+    # Formular: (p - plane_point) dot plane_normal = 0  
+    # Output: t = ((plane_point - p1) dot plane_normal) / (p2 - p1) dot plane_normal  
+    vec = p2 - p1  
+    denom = np.dot(vec, plane_normal)  
+    if np.isclose(denom, 0):  # LOS is parallel to the plane?
+        return None  
+    t = np.dot(plane_point - p1, plane_normal) / denom  
+    if t < 0 or t > 1:  # intersect is not within the LOS 
+        return None  
+    return p1 + t * vec  
+  
+def line_intersects_box(p1, p2, cx, cy, cz, length, width, height):  
+    """Whether the LOS is blocked by the object?"""  
+    half_dims = np.array([length / 2, width / 2, height / 2])  
+    # Define 6 planes of the box: assuming the block is box shape
+    planes = [  
+        (np.array([1, 0, 0]), [cx - half_dims[0], cy, cz]),  
+        (np.array([-1, 0, 0]), [cx + half_dims[0], cy, cz]),  
+        (np.array([0, 1, 0]), [cx, cy - half_dims[1], cz]),  
+        (np.array([0, -1, 0]), [cx, cy + half_dims[1], cz]),  
+        (np.array([0, 0, 1]), [cx, cy, cz - half_dims[2]]),  
+        (np.array([0, 0, -1]), [cx, cy, cz + half_dims[2]])  
+    ]  
+    # Check intersects with each plane
+    intersections = []  
+    for plane_normal, plane_point in planes:  
+        intersection = line_intersect_plane(p1, p2, plane_normal, plane_point)  
+        if intersection is not None:  
+            intersections.append(intersection)  
+    # If intersects exist and within the LOS
+    for i in range(0, 6, 2):  
+        if len(intersections) >= 2 and all(map(lambda x: np.allclose(x, intersections[i//2]), intersections[i:i+2])):  
+            return True  
+  
+    return False  
+
+
 
 if __name__ == '__main__':
     '''
     Define the position of RFID 
     ''' 
-    possible_tags_range = np.array([[4,6],[0,0.5],[0.3,2]])
+    possible_tags_range = np.array([[4,6],[-1,1],[0,2]])
     tag_x_down = 4
     tag_x_up = 6
     tag_y_down = 0
@@ -161,7 +208,7 @@ if __name__ == '__main__':
     tag_z_down = 0.3
     tag_z_up = 2
     tags_locations = []
-    for i in range(20):
+    for i in range(100):
         tag_location_x = random.uniform(tag_x_down,tag_x_up)
         tag_location_y = random.uniform(tag_y_down,tag_y_up)
         tag_location_z = random.uniform(tag_z_down,tag_z_up)
@@ -174,7 +221,7 @@ if __name__ == '__main__':
     * generate randomly
     '''
     # Define the range of start points and end points
-    possible_y = np.arange(0.2, 3.3, 0.5)
+    possible_y = np.arange(1, 3.6, 0.5)
     robot_start_points_y = []
     robot_end_points_y = []
     # First decide the y axis of robot (y means beside the robot; x means the direction of the robot)
@@ -215,9 +262,21 @@ if __name__ == '__main__':
     
     # Define mode control parameters
     noise = None
-    multipath = None
-    root_path = '~/GeneratedData'
+    root_path = '/home/yangys/GeneratedData'
     
+    # Define multipath:
+    # 
+    multipath = None
+    '''
+    
+    '''
+    p1 = np.array([0, 0, 0])  
+    p2 = np.array([2, 2, 2])  
+    cx, cy, cz = 1, 1, 1  
+    length, width, height = 2, 2, 2  
+    print(line_intersects_box(p1, p2, cx, cy, cz, length, width, height))  # 应输出 True
+    
+
     '''
     Start data generation:
     * Traverse all possible trajectories and label coordinates
